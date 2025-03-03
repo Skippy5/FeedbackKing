@@ -1,0 +1,155 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    width: 1000px;
+    height: 800px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    background-color: #4a69bd;
+    color: white;
+}
+
+.mood-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    gap: 10px;
+    position: relative;
+    margin-bottom: 10px;
+    padding-top: 25px;
+}
+
+.mood-labels {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 0 5px;
+}
+
+.mood-label-left {
+    color: #ff6b6b;
+    text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.5);
+}
+
+.mood-label-right {
+    color: #1dd1a1;
+    text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.5);
+}
+
+.score-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+}
+
+.stats {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.mood-bar-container {
+    width: 100%;
+    height: 20px;
+    background-color: #ddd;
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+}
+
+#mood-bar {
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(to right, #ff6b6b, #feca57, #1dd1a1);
+    border-radius: 10px;
+}
+
+/* New triangle indicator */
+#mood-indicator {
+    position: absolute;
+    top: -10px;
+    left: 57%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 13px solid transparent;
+    border-right: 13px solid transparent;
+    border-top: 19px solid white;
+    filter: drop-shadow(0px 0px 5px rgba(0, 0, 0, 0.8));
+    transition: left 0.3s ease;
+    z-index: 10;
+    pointer-events: none;
+}
+
+canvas {
+    flex-grow: 1;
+    background-color: #f0f9ff;
+}
+
+/* Buff indicator styling */
+.buff-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: rgba(142, 68, 173, 0.8); /* Purple, matching SJ's color */
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: bold;
+    z-index: 10;
+    display: none;
+    animation: pulse 1.5s infinite;
+    box-shadow: 0 0 10px rgba(142, 68, 173, 0.5);
+}
+
+.buff-indicator.flash-active {
+    animation: flash-buff 1s ease-out;
+    background-color: rgba(142, 68, 173, 1);
+}
+
+@keyframes flash-buff {
+    0% { transform: scale(1); background-color: rgba(142, 68, 173, 0.8); }
+    25% { transform: scale(1.5); background-color: rgba(142, 68, 173, 1); box-shadow: 0 0 20px rgba(142, 68, 173, 1); }
+    100% { transform: scale(1); background-color: rgba(142, 68, 173, 0.8); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* We can remove the screen flash since we're no longer using it */
+.screen-flash {
+    display: none;
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mood Bar Test</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        body {
+            padding: 20px;
+            height: auto;
+            display: block;
+        }
+        .test-container {
+            width: 500px;
+            padding: 20px;
+            margin: 20px auto;
+            background-color: #4a69bd;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <div class="mood-container">
+            <span>Chappy's Mood:</span>
+            <div class="mood-labels">
+                <span class="mood-label-left">Bye Bye RJ</span>
+                <span class="mood-label-right">Happy Chappy</span>
+            </div>
+            <div class="mood-bar-container">
+                <div id="mood-bar"></div>
+                <div id="mood-indicator"></div>
+            </div>
+            <span id="mood-value">4.0</span>
+        </div>
+    </div>
+
+    <script>
+        // Simple script to test moving the indicator
+        const indicator = document.getElementById('mood-indicator');
+        let position = 0;
+        
+        function moveIndicator() {
+            position = (position + 1) % 101; // 0-100%
+            indicator.style.left = position + '%';
+            setTimeout(moveIndicator, 50);
+        }
+        
+        moveIndicator();
+    </script>
+</body>
+</html> 

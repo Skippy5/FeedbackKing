@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feedback King</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="game-container">
+        <div class="header">
+            <div class="mood-container">
+                <span>Chappy's Mood:</span>
+                <div class="mood-labels">
+                    <span class="mood-label-left">Bye Bye RJ</span>
+                    <span class="mood-label-right">Happy Chappy</span>
+                </div>
+                <div class="mood-bar-container">
+                    <div id="mood-bar"></div>
+                    <div id="mood-indicator"></div>
+                </div>
+                <span id="mood-value">4.0</span>
+            </div>
+            <div class="score-container">
+                <div class="stats">
+                    <span>Level: <span id="level">1</span></span>
+                    <span>People Left: <span id="people-left">0</span></span>
+                    <span>Score: <span id="score">0</span></span>
+                    <span>Tokens: <span id="tokens">0</span></span>
+                    <span>CSAT: <span id="csat-value">0.0</span></span>
+                </div>
+            </div>
+        </div>
+        <div id="buff-indicator" class="buff-indicator">Positive Feedback Buff: 0s</div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="game.js"></script>
+</body>
+</html>
