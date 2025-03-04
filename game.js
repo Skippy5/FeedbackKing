@@ -630,49 +630,67 @@ class Game {
                     // Apply the mood change (ensuring it stays between 1-10)
                     this.mood = Math.max(1, Math.min(10, this.mood + moodChange));
                     
-                    // Only show messages randomly (approximately 20% of the time)
-                    if (Math.random() < 0.2) {
+                    // Show messages more frequently (75% of the time)
+                    if (Math.random() < 0.75) {
                         this.chappy.messageVisible = true;
                         this.chappy.messageTimer = 2; // Show for 2 seconds
                         
                         // Different messages based on score ranges
                         if (collectedScore <= 3) {
-                            // Bad scores - blame various characters
+                            // Bad scores - only blame Skip, RJ, or Dean
                             const badMessages = [
                                 "RJ! Did you mess with my feedback again?",
+                                "RJ is sabotaging my scores! I know it!",
+                                "RJ probably tampered with this survey!",
                                 "Skip is definitely behind these terrible scores!",
+                                "Skip deliberately ruined my feedback again!",
+                                "Skip must be manipulating these numbers!",
                                 "Dean must have sabotaged my feedback!",
-                                "I bet SJ tampered with this survey!",
-                                "This has Ali's fingerprints all over it!",
-                                "Ted broke my feedback system again!",
-                                "Gabor's new computers are ruining everything!",
-                                "KC did this! I'm sure of it!",
-                                "This abysmal score screams Cole's interference!"
+                                "Dean's new system is clearly broken!",
+                                "Dean is making me look bad on purpose!"
                             ];
                             this.chappy.messageText = badMessages[Math.floor(Math.random() * badMessages.length)];
                         } else if (collectedScore <= 5) {
-                            // Average scores - call out various characters for mediocrity
+                            // Average scores - only blame Skip, RJ, or Dean for mediocrity
                             const averageMessages = [
                                 "This is so... average. Just like RJ.",
+                                "RJ's mediocrity is rubbing off on my scores.",
+                                "I bet RJ approved this feedback.",
                                 "Mediocre feedback, must be Skip's doing.",
+                                "Skip always settles for average.",
+                                "Skip thinks this is acceptable performance?",
                                 "Dean's work is always this uninspiring.",
-                                "SJ calls this product enhancement? Please!",
-                                "Ali's system checks are as mid as this score.",
-                                "Ted's IT support is about this effective.",
-                                "Gabor's budget allocation matches this score.",
-                                "KC organized this feedback like a mediocre party.",
-                                "Cole's organization skills are as average as this."
+                                "Dean calls this a success? Please!",
+                                "Dean's approval standards match this score."
                             ];
                             this.chappy.messageText = averageMessages[Math.floor(Math.random() * averageMessages.length)];
                         } else if (collectedScore <= 7) {
-                            // Good scores - praise Chappy
-                            const goodMessages = [
-                                "Now THIS is what my amazing self deserves!",
-                                "Great scores for a great Chappy!",
-                                "Excellent! Finally some recognition of my genius!",
-                                "This is what happens when I handle things!"
-                            ];
-                            this.chappy.messageText = goodMessages[Math.floor(Math.random() * goodMessages.length)];
+                            // Good scores - mostly praise himself but occasionally praise an NPC
+                            if (Math.random() < 0.8) {
+                                // 80% chance to praise himself
+                                const goodMessages = [
+                                    "Now THIS is what my amazing self deserves!",
+                                    "Great scores for a great Chappy!",
+                                    "Excellent! Finally some recognition of my genius!",
+                                    "This is what happens when I handle things!",
+                                    "Perfect! Just like me!",
+                                    "I knew these would be phenomenal scores!"
+                                ];
+                                this.chappy.messageText = goodMessages[Math.floor(Math.random() * goodMessages.length)];
+                            } else {
+                                // 20% chance to praise an NPC
+                                const praiseNpcMessages = [
+                                    "I guess Ali's feedback system works sometimes.",
+                                    "Maybe Skip did something right for once.",
+                                    "Dean's process actually delivered good data!",
+                                    "RJ might have helped with this one...",
+                                    "Ted's IT upgrades are paying off!",
+                                    "Gabor's budget allocation was worth it this time.",
+                                    "KC organized this feedback well!",
+                                    "Cole's attention to detail shows in this score."
+                                ];
+                                this.chappy.messageText = praiseNpcMessages[Math.floor(Math.random() * praiseNpcMessages.length)];
+                            }
                         }
                     }
                     
