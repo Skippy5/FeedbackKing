@@ -3194,15 +3194,12 @@ class Game {
         this.ctx.font = '16px Arial';
         
         const instructions = [
-            "• Move RJ with WASD or Arrow Keys",
-            "• Click and hold near customers to improve their CSAT scores",
-            "• Avoid Chappy who wants to collect feedback before you improve it",
-            "• Collect Blue snowflake rewards to freeze Chappy temporarily",
-            "• Collect Green heart rewards to increase your Mood",
-            "• Collect Yellow star tokens to use special ability (press SPACE)",
-            "• Maintain your mood by keeping CSAT scores high",
-            "• Watch out for special characters like Dean, Ali, and Ted who appear randomly",
-            "• Complete each level by helping all customers"
+            "• Move RJ with WASD",
+            "• Left Click Mouse near customers to improve feedback",
+            "• Do not bump into Chappy or let him see you changing scores",
+            "• Negative feedback upsets Chappy",
+            "• Collect Rewards and Tokens, use tokens with Space Bar",
+            "• Bump into other characters to collaborate"
         ];
         
         for (let i = 0; i < instructions.length; i++) {
