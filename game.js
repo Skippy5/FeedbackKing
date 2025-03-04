@@ -598,6 +598,84 @@ class Game {
                     const sum = this.collectedScores.reduce((total, score) => total + score, 0);
                     this.csatScore = this.collectedScores.length > 0 ? sum / this.collectedScores.length : 0;
                     
+                    // Apply mood adjustment based on the score
+                    const collectedScore = this.chappy.collectingPerson.score;
+                    
+                    // Apply specific mood changes for each score value
+                    let moodChange = 0;
+                    switch(collectedScore) {
+                        case 1:
+                            moodChange = -1.0;
+                            break;
+                        case 2:
+                            moodChange = -0.75;
+                            break;
+                        case 3:
+                            moodChange = -0.50;
+                            break;
+                        case 4:
+                            moodChange = -0.25;
+                            break;
+                        case 5:
+                            moodChange = 0;
+                            break;
+                        case 6:
+                            moodChange = 0.1;
+                            break;
+                        case 7:
+                            moodChange = 0.25;
+                            break;
+                    }
+                    
+                    // Apply the mood change (ensuring it stays between 1-10)
+                    this.mood = Math.max(1, Math.min(10, this.mood + moodChange));
+                    
+                    // Only show messages randomly (approximately 20% of the time)
+                    if (Math.random() < 0.2) {
+                        this.chappy.messageVisible = true;
+                        this.chappy.messageTimer = 2; // Show for 2 seconds
+                        
+                        // Different messages based on score ranges
+                        if (collectedScore <= 3) {
+                            // Bad scores - blame various characters
+                            const badMessages = [
+                                "RJ! Did you mess with my feedback again?",
+                                "Skip is definitely behind these terrible scores!",
+                                "Dean must have sabotaged my feedback!",
+                                "I bet SJ tampered with this survey!",
+                                "This has Ali's fingerprints all over it!",
+                                "Ted broke my feedback system again!",
+                                "Gabor's new computers are ruining everything!",
+                                "KC did this! I'm sure of it!",
+                                "This abysmal score screams Cole's interference!"
+                            ];
+                            this.chappy.messageText = badMessages[Math.floor(Math.random() * badMessages.length)];
+                        } else if (collectedScore <= 5) {
+                            // Average scores - call out various characters for mediocrity
+                            const averageMessages = [
+                                "This is so... average. Just like RJ.",
+                                "Mediocre feedback, must be Skip's doing.",
+                                "Dean's work is always this uninspiring.",
+                                "SJ calls this product enhancement? Please!",
+                                "Ali's system checks are as mid as this score.",
+                                "Ted's IT support is about this effective.",
+                                "Gabor's budget allocation matches this score.",
+                                "KC organized this feedback like a mediocre party.",
+                                "Cole's organization skills are as average as this."
+                            ];
+                            this.chappy.messageText = averageMessages[Math.floor(Math.random() * averageMessages.length)];
+                        } else if (collectedScore <= 7) {
+                            // Good scores - praise Chappy
+                            const goodMessages = [
+                                "Now THIS is what my amazing self deserves!",
+                                "Great scores for a great Chappy!",
+                                "Excellent! Finally some recognition of my genius!",
+                                "This is what happens when I handle things!"
+                            ];
+                            this.chappy.messageText = goodMessages[Math.floor(Math.random() * goodMessages.length)];
+                        }
+                    }
+                    
                     // Decrement peopleLeft counter
                     this.peopleLeft = Math.max(0, this.peopleLeft - 1);
                     
@@ -986,7 +1064,17 @@ class Game {
                 if (!this.chappy.messageVisible) {
                     this.chappy.messageVisible = true;
                     this.chappy.messageTimer = 2; // Show for 2 seconds
-                    this.chappy.messageText = "What are you doing?"; // New message text
+                    
+                    // Random messages about stopping score changes
+                    const chappyMessages = [
+                        "Stop changing those scores!",
+                        "Leave those feedback scores alone!",
+                        "Don't touch my feedback data!",
+                        "Those scores are fine as they are!",
+                        "Step away from the feedback!",
+                        "My scores! My precious scores!"
+                    ];
+                    this.chappy.messageText = chappyMessages[Math.floor(Math.random() * chappyMessages.length)];
                 }
                 
                 // Update UI
@@ -1469,7 +1557,22 @@ class Game {
         if (customMessage) {
             this.gameOverMessage = customMessage;
         } else {
-            this.gameOverMessage = "Your mood has run out!";
+            // Use a random funny default message instead of the boring one
+            const defaultMessages = [
+                "Chappy's mood meter is maxed out... with glee at your demise!",
+                "Game over! Chappy is throwing a 'Your Career is Over' party!",
+                "Mood flatlined! Chappy's writing your obituary!",
+                "Your mood has left the chat... and Chappy is the admin now!",
+                "Bye Bye RJ! The Chappy isn't Happy!",
+                "Chappy wins, mood plummets, job prospects too!",
+                "The mood-o-meter hit rock bottom! Chappy's dancing on it!",
+                "Chappy 1, Your Mood 0. Game, set, unemployment!",
+                "Your feedback game is weak, but Chappy's schadenfreude is strong!",
+                "Mood critical failure! Have you tried turning RJ off and on again?",
+                "Chappy's mood improvement plan: Your termination letter!",
+                "Your mood just got Chappy-slapped into oblivion!"
+            ];
+            this.gameOverMessage = defaultMessages[Math.floor(Math.random() * defaultMessages.length)];
         }
         
         // Clear any existing restart cooldown
@@ -1565,11 +1668,14 @@ class Game {
         // Store the snarky message in a property if not already set
         if (!this.gameOverMessage) {
             const snarkyMessages = [
-                "Chappy's mood has left the building!",
-                "Chappy wins this round. Your mood is toast!",
-                "No mood, no job-o! Better luck next time.",
-                "Your mood meter just flatlined. Ouch!",
-                "Looks like you've been Chappy-ed!"
+                "Bye Bye RJ! The Chappy isn't Happy!",
+                "Chappy wins, mood plummets, job prospects too!",
+                "The mood-o-meter hit rock bottom! Chappy's dancing on it!",
+                "Chappy 1, Your Mood 0. Game, set, unemployment!",
+                "Your feedback game is weak, but Chappy's schadenfreude is strong!",
+                "Mood critical failure! Have you tried turning RJ off and on again?",
+                "Chappy's mood improvement plan: Your termination letter!",
+                "Your mood just got Chappy-slapped into oblivion!"
             ];
             this.gameOverMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
         }
@@ -2468,6 +2574,7 @@ class Game {
         
         // Draw eyes
         this.ctx.fillStyle = '#fff';
+        
         
         // Left eye
         this.ctx.beginPath();
