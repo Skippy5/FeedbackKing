@@ -137,9 +137,9 @@ class Game {
                 effect: 'make_people_happy',
                 effectDuration: 10 // 10 seconds of happiness
             },
-            'kc': {
-                name: 'KC',
-                color: '#f39c12', // Orange color for KC
+            'jt': {
+                name: 'JT',
+                color: '#f39c12', // Orange color for JT
                 message: "Happy Birthday Dean!",
                 effect: 'spawn_birthday_dean',
                 effectDuration: 0 // Instant effect
@@ -703,7 +703,7 @@ class Game {
                                     "RJ might have helped with this one...",
                                     "Ted's IT upgrades are paying off!",
                                     "Gabor's budget allocation was worth it this time.",
-                                    "KC organized this feedback well!",
+                                    "JT organized this feedback well!",
                                     "Cole's attention to detail shows in this score."
                                 ];
                                 this.chappy.messageText = praiseNpcMessages[Math.floor(Math.random() * praiseNpcMessages.length)];
@@ -3656,8 +3656,8 @@ class Game {
         
         if (rand < 0.3) { // 30% chance to spawn Gabor
             npcType = 'gabor';
-        } else if (rand < 0.4) { // 10% chance to spawn KC (special, less frequent)
-            npcType = 'kc';
+        } else if (rand < 0.4) { // 10% chance to spawn JT (special, less frequent)
+            npcType = 'jt';
         } else if (rand < 0.5) { // 10% chance to spawn Cole (special, less frequent)
             npcType = 'cole';
         } else {
