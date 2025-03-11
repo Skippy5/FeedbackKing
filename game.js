@@ -61,8 +61,6 @@ class Game {
             height: 30,
             speed: 100,
             targetPerson: null,
-            isTargetingRJ: false,
-            targetRJTimer: 5 + Math.random() * 5, // 5-10 seconds until first targeting of RJ
             collecting: false,
             collectingPerson: null,
             collectingTime: 0,
@@ -73,7 +71,7 @@ class Game {
             messageVisible: false,
             messageTimer: 0,
             messageText: null,
-            lastCollisionTime: 0, // Track last collision time to prevent rapid mood loss
+            lastCollisionTime: 0 // Track last collision time to prevent rapid mood loss
         };
         
         this.skip = {
@@ -128,7 +126,7 @@ class Game {
             'ted': {
                 name: 'Ted',
                 color: '#e74c3c', // Red color for Ted
-                message: "Have you tried turning it off and on again!",
+                message: "We can't fix this without a change ticket!",
                 effect: 'feedback_score_boost',
                 effectDuration: 0 // Instant effect
             },
@@ -200,6 +198,21 @@ class Game {
         this.coleMessageTimer = 0;
         this.freezeEffectVisible = false;
         this.freezeEffectTimer = 0;
+        
+        // Bear threat - new feature
+        this.bear = {
+            x: -100, // Start off-screen
+            y: -100,
+            width: 50,  // Bigger than RJ
+            height: 50,
+            speed: 180, // Slightly slower than RJ (200)
+            active: false,
+            spawnTimer: 0,
+            activeTimer: 0,
+            minSpawnTime: 20, // Minimum seconds between bear spawns
+            maxSpawnTime: 40, // Maximum seconds between bear spawns
+            activeDuration: 15 // How long the bear stays on screen
+        };
     }
     
     bindEvents() {
@@ -330,8 +343,9 @@ class Game {
         this.chappy.collectingPerson = null;
         this.chappy.happy = false;
         this.chappy.happyTime = 0;
-        this.chappy.isTargetingRJ = false;
-        this.chappy.targetRJTimer = 5 + Math.random() * 5; // Initialize timer to start random chasing behavior
+        this.chappy.messageVisible = false;
+        this.chappy.messageTimer = 0;
+        this.chappy.messageText = null;
         
         this.skip.x = this.canvas.width / 2;
         this.skip.y = this.canvas.height - 50; // Move Skip up a bit from the bottom
@@ -360,6 +374,10 @@ class Game {
         this.npcSpawnTimer = 5 + Math.random() * 5; // Reduced timer: 5-10 seconds instead of 15-30
         this.positiveFeedbackBuff = false;
         this.positiveFeedbackBuffTime = 0;
+        
+        // Reset bear properties
+        this.bear.active = false;
+        this.bear.spawnTimer = this.bear.minSpawnTime + Math.random() * (this.bear.maxSpawnTime - this.bear.minSpawnTime);
     }
     
     gameLoop(currentTime) {
@@ -493,6 +511,7 @@ class Game {
             this.updateRewards(deltaTime);
             this.updateNPCs(deltaTime);
             this.updatePowerups(deltaTime);
+            this.updateBear(deltaTime); // Update the bear
             
             // Update particles if the method exists
             if (this.updateParticles) {
@@ -567,7 +586,6 @@ class Game {
             this.chappy.frozenTime -= deltaTime;
             if (this.chappy.frozenTime <= 0) {
                 this.chappy.frozen = false;
-                this.chappy.isTargetingRJ = false; // Reset targeting when unfrozen
             }
             return;
         }
@@ -577,7 +595,6 @@ class Game {
             if (this.chappy.happyTime <= 0) {
                 this.chappy.happy = false;
             }
-            // Still allow movement when happy
         }
         
         // If Chappy is collecting feedback, continue the process
@@ -714,65 +731,36 @@ class Game {
             return; // Don't move while collecting
         }
         
-        // Update RJ targeting timer
-        if (this.chappy.targetRJTimer > 0) {
-            this.chappy.targetRJTimer -= deltaTime;
-            if (this.chappy.targetRJTimer <= 0) {
-                // Randomly decide whether to target RJ directly
-                // Higher chance in higher levels
-                const targetRJChance = 0.1 + (this.level * 0.03); // 10% base chance + 3% per level
-                if (Math.random() < targetRJChance) {
-                    this.chappy.isTargetingRJ = true;
-                    this.chappy.targetPerson = null; // Clear any person target
-                    this.chappy.targetRJTimer = 5 + Math.random() * 3; // Target RJ for 5-8 seconds
-                    
-                    // Show a threatening message
-                    this.chappy.messageVisible = true;
-                    this.chappy.messageTimer = 2;
-                    
-                    // Random chase messages
-                    const chaseMessages = [
-                        "I'm coming for you, RJ!",
-                        "RJ, we need to talk!",
-                        "RJ, have you been changing scores?!",
-                        "RJ! Those surveys look suspicious!",
-                        "RJ! The data doesn't add up!",
-                        "RJ! You can't hide those metrics!"
-                    ];
-                    
-                    // Select a random message
-                    const randomIndex = Math.floor(Math.random() * chaseMessages.length);
-                    this.chappy.messageText = chaseMessages[randomIndex];
-                } else {
-                    this.chappy.isTargetingRJ = false;
-                    this.chappy.targetRJTimer = 8 + Math.random() * 5; // Wait 8-13 seconds before next decision
-                }
+        // Update message timer for bear comments
+        if (this.chappy.messageTimer > 0) {
+            this.chappy.messageTimer -= deltaTime;
+            if (this.chappy.messageTimer <= 0) {
+                this.chappy.messageVisible = false;
+                this.chappy.messageText = null;
             }
-        } else if (!this.chappy.targetRJTimer) {
-            // Initialize timer on first update
-            this.chappy.targetRJTimer = 8 + Math.random() * 5;
         }
         
-        // If targeting RJ directly
-        if (this.chappy.isTargetingRJ) {
-            // Move toward RJ
-            const dx = this.rj.x - this.chappy.x;
-            const dy = this.rj.y - this.chappy.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
+        // Occasionally comment about the bear
+        if (this.bear.active && Math.random() < 0.005) { // 0.5% chance per frame to comment
+            this.chappy.messageVisible = true;
+            this.chappy.messageTimer = 2;
             
-            if (distance > 5) {
-                // Move slightly faster when chasing RJ directly
-                const chaseSpeed = this.chappy.speed * 1.1;
-                this.chappy.x += (dx / distance) * chaseSpeed * deltaTime;
-                this.chappy.y += (dy / distance) * chaseSpeed * deltaTime;
-            } else {
-                // If reached RJ, stop targeting and go back to normal behavior
-                this.chappy.isTargetingRJ = false;
-                this.chappy.targetRJTimer = 5 + Math.random() * 3;
-            }
+            // Random messages about the bear
+            const bearMessages = [
+                "That bear looks hungry!",
+                "RJ better watch out for that bear!",
+                "Bears are so much better at chasing than I am!",
+                "I'll let the bear handle RJ!",
+                "Run, RJ, run from the bear!",
+                "This bear makes my job so much easier!",
+                "Finally, someone else to chase RJ!"
+            ];
+            
+            this.chappy.messageText = bearMessages[Math.floor(Math.random() * bearMessages.length)];
         }
-        // Normal targeting behavior when not targeting RJ
-        else if (!this.chappy.targetPerson && this.people.length > 0 && !this.chappy.isTargetingRJ) {
+        
+        // Normal targeting behavior for collecting feedback
+        if (!this.chappy.targetPerson && this.people.length > 0) {
             // Filter for people who have stopped moving (not entering)
             const stoppedPeople = this.people.filter(person => !person.entering);
             
@@ -790,31 +778,43 @@ class Game {
             }
         }
         
-        if (this.chappy.targetPerson && !this.chappy.isTargetingRJ) {
+        if (this.chappy.targetPerson) {
             // Move toward target person
             const dx = this.chappy.targetPerson.x - this.chappy.x;
             const dy = this.chappy.targetPerson.y - this.chappy.y;
             const distance = Math.sqrt(dx * dx + dy * dy);
             
-            if (distance > 5) {  // If not very close to target
-                this.chappy.x += (dx / distance) * this.chappy.speed * deltaTime;
-                this.chappy.y += (dy / distance) * this.chappy.speed * deltaTime;
+            // Apply slowdown effect if active
+            const currentSpeed = this.chappySlowdown ? this.chappy.speed * 0.5 : this.chappy.speed;
+            
+            if (distance > 5) {
+                this.chappy.x += (dx / distance) * currentSpeed * deltaTime;
+                this.chappy.y += (dy / distance) * currentSpeed * deltaTime;
             } else {
                 // Start collecting feedback
                 this.chappy.collecting = true;
-                this.chappy.collectingTime = 1.5; // Takes 1.5 seconds to collect feedback (50% faster)
+                this.chappy.collectingTime = 1.5; // Takes 1.5 seconds to collect feedback
                 this.chappy.collectingPerson = this.chappy.targetPerson;
             }
-        } else if (!this.chappy.isTargetingRJ) {
-            // Random movement if no target and not targeting RJ
-            const angle = Math.random() * Math.PI * 2;
-            this.chappy.x += Math.cos(angle) * this.chappy.speed * deltaTime;
-            this.chappy.y += Math.sin(angle) * this.chappy.speed * deltaTime;
+        } else {
+            // No target - wander randomly
+            // With happy behavior modification
+            if (this.chappy.happy) {
+                // Happy Chappy moves in joyful bounces
+                const time = Date.now() / 200;
+                this.chappy.x += Math.sin(time) * this.chappy.speed * 0.5 * deltaTime;
+                this.chappy.y += Math.cos(time * 1.5) * this.chappy.speed * 0.5 * deltaTime;
+            } else {
+                // Normal wandering
+                // Gentle random movement when no target
+                this.chappy.x += (Math.random() - 0.5) * this.chappy.speed * 0.5 * deltaTime;
+                this.chappy.y += (Math.random() - 0.5) * this.chappy.speed * 0.5 * deltaTime;
+            }
+            
+            // Keep Chappy within bounds
+            this.chappy.x = Math.max(this.chappy.width / 2, Math.min(this.canvas.width - this.chappy.width / 2, this.chappy.x));
+            this.chappy.y = Math.max(this.chappy.height / 2, Math.min(this.canvas.height - this.chappy.height / 2, this.chappy.y));
         }
-        
-        // Keep Chappy within canvas bounds
-        this.chappy.x = Math.max(this.chappy.width / 2, Math.min(this.canvas.width - this.chappy.width / 2, this.chappy.x));
-        this.chappy.y = Math.max(this.chappy.height / 2, Math.min(this.canvas.height - this.chappy.height / 2, this.chappy.y));
     }
     
     updateDean(deltaTime) {
@@ -883,7 +883,7 @@ class Game {
             // Dean's random sayings
             const sayings = this.dean.isBirthdayDean 
                 ? ["Thanks for the birthday wishes!", "Birthday feedback is the best!", "I'm dropping party people!"]
-                : ["PBR", "Push the Button, say your prayers", "95% is done enough!", "What is done exaclty?", "I am eye Candy!", "Chaos Dean here!", "It makes sense in my mind!"];
+                : ["PBR", "Push the Button, say your prayers", "95% is done enough!", "What is done exaclty?", "I am eye Candy!", "Chaos Dean here!", "It makes sense in my mind!", "I am SEB material!"];
             
             const randomIndex = Math.floor(Math.random() * sayings.length);
             this.dean.messageText = sayings[randomIndex];
@@ -2288,16 +2288,26 @@ class Game {
             this.ctx.fillText(this.collectedNPC.message, x, y - 45);
         }
         
-        // Draw RJ as emoji
-        this.drawRJEmoji();
-        
-        // Draw Chappy as emoji
-        this.drawChappyEmoji();
+        // Draw Cole special effect if active
+        if (this.coleActive) {
+            this.drawColeEmoji();
+        }
         
         // Draw Dean if active
         if (this.dean.active) {
             this.drawDeanEmoji();
         }
+        
+        // Draw the bear if active
+        if (this.bear.active) {
+            this.drawBearEmoji();
+        }
+        
+        // Draw Chappy
+        this.drawChappyEmoji();
+        
+        // Draw RJ
+        this.drawRJEmoji();
         
         // Draw interaction aura when RJ is interacting
         if (this.rj.interacting) {
@@ -2348,6 +2358,11 @@ class Game {
         // Draw Cole when active
         if (this.coleActive) {
             this.drawColeEmoji();
+        }
+        
+        // Draw the bear if active
+        if (this.bear.active) {
+            this.drawBearEmoji();
         }
     }
     
@@ -4472,6 +4487,168 @@ class Game {
     // End Game and Show Game Over Screen
     endGame(message) {
         // ... existing code ...
+    }
+    
+    // Add a new method to update the bear
+    updateBear(deltaTime) {
+        // Update bear spawn timer if bear is not active
+        if (!this.bear.active) {
+            this.bear.spawnTimer -= deltaTime;
+            
+            // Time to spawn the bear
+            if (this.bear.spawnTimer <= 0) {
+                this.spawnBear();
+            }
+        } else {
+            // Bear is active - chase RJ
+            // Calculate direction to RJ
+            const dx = this.rj.x - this.bear.x;
+            const dy = this.rj.y - this.bear.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Move bear towards RJ
+            if (distance > 0) {
+                this.bear.x += (dx / distance) * this.bear.speed * deltaTime;
+                this.bear.y += (dy / distance) * this.bear.speed * deltaTime;
+            }
+            
+            // Check for collision with RJ
+            if (this.checkCollision(this.bear, this.rj)) {
+                // Game over if bear catches RJ
+                this.gameOver("Oh no! A bear got you! 🐻");
+                return;
+            }
+            
+            // Update active timer
+            this.bear.activeTimer -= deltaTime;
+            
+            // Time to remove the bear
+            if (this.bear.activeTimer <= 0) {
+                this.bear.active = false;
+                // Set the next spawn time
+                this.bear.spawnTimer = this.bear.minSpawnTime + Math.random() * (this.bear.maxSpawnTime - this.bear.minSpawnTime);
+            }
+        }
+    }
+    
+    // Method to spawn the bear
+    spawnBear() {
+        console.log("Bear spawned!");
+        
+        // Randomly pick an edge to spawn from
+        const edge = Math.floor(Math.random() * 4); // 0: top, 1: right, 2: bottom, 3: left
+        
+        switch (edge) {
+            case 0: // Top
+                this.bear.x = Math.random() * this.canvas.width;
+                this.bear.y = -this.bear.height;
+                break;
+            case 1: // Right
+                this.bear.x = this.canvas.width + this.bear.width;
+                this.bear.y = Math.random() * this.canvas.height;
+                break;
+            case 2: // Bottom
+                this.bear.x = Math.random() * this.canvas.width;
+                this.bear.y = this.canvas.height + this.bear.height;
+                break;
+            case 3: // Left
+                this.bear.x = -this.bear.width;
+                this.bear.y = Math.random() * this.canvas.height;
+                break;
+        }
+        
+        // Set bear active status
+        this.bear.active = true;
+        this.bear.activeTimer = this.bear.activeDuration;
+        
+        // Maybe play a sound or show a warning message
+        this.rj.messageVisible = true;
+        this.rj.messageTimer = 3;
+        this.rj.messageText = "Bear alert! Run!";
+    }
+    
+    // Method to draw the bear
+    drawBearEmoji() {
+        const x = this.bear.x;
+        const y = this.bear.y;
+        const width = this.bear.width;
+        const height = this.bear.height;
+        
+        // Save current context settings
+        this.ctx.save();
+        
+        // Draw the bear head
+        this.ctx.fillStyle = '#8B4513'; // Brown color
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, width/2, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Draw the bear ears
+        this.ctx.fillStyle = '#8B4513';
+        // Left ear
+        this.ctx.beginPath();
+        this.ctx.arc(x - width/3, y - height/3, width/6, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Right ear
+        this.ctx.beginPath();
+        this.ctx.arc(x + width/3, y - height/3, width/6, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Inner ears
+        this.ctx.fillStyle = '#A0522D';
+        // Left inner ear
+        this.ctx.beginPath();
+        this.ctx.arc(x - width/3, y - height/3, width/10, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Right inner ear
+        this.ctx.beginPath();
+        this.ctx.arc(x + width/3, y - height/3, width/10, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Bear snout
+        this.ctx.fillStyle = '#A0522D';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y + height/8, width/4, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Bear nose
+        this.ctx.fillStyle = '#000';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y + height/8, width/10, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Eyes
+        this.ctx.fillStyle = '#000';
+        // Left eye
+        this.ctx.beginPath();
+        this.ctx.arc(x - width/6, y - height/10, width/15, 0, Math.PI * 2);
+        this.ctx.fill();
+        // Right eye
+        this.ctx.beginPath();
+        this.ctx.arc(x + width/6, y - height/10, width/15, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Angry eyebrows
+        this.ctx.strokeStyle = '#000';
+        this.ctx.lineWidth = 3;
+        // Left eyebrow
+        this.ctx.beginPath();
+        this.ctx.moveTo(x - width/4, y - height/8);
+        this.ctx.lineTo(x - width/12, y - height/5);
+        this.ctx.stroke();
+        // Right eyebrow
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + width/4, y - height/8);
+        this.ctx.lineTo(x + width/12, y - height/5);
+        this.ctx.stroke();
+        
+        // Mouth (angry)
+        this.ctx.beginPath();
+        this.ctx.arc(x, y + height/4, width/8, 0, Math.PI, false);
+        this.ctx.stroke();
+        
+        // Restore context settings
+        this.ctx.restore();
     }
 }
 
