@@ -34,6 +34,14 @@ class Game {
         this.moodAdjustment = 0; // Track mood adjustment between levels
         this.moodMessage = ""; // Message to display with mood adjustment
         
+        // Global message system
+        this.globalMessage = {
+            text: "",
+            visible: false,
+            timer: 0,
+            color: '#e74c3c' // Red color by default
+        };
+        
         this.rj = {
             x: 400,
             y: 300,
@@ -73,7 +81,14 @@ class Game {
             messageText: null,
             lastCollisionTime: 0, // Track last collision time to prevent rapid mood loss
             handlingBear: false,  // New property to track when Chappy is handling a bear
-            handlingBearTime: 0   // Timer for bear handling animation
+            handlingBearTime: 0,   // Timer for bear handling animation
+            disguised: false,     // Whether Chappy is disguised as "Not Chappy"
+            leaving: false,       // Whether Chappy is currently leaving the screen
+            returning: false,     // Whether Chappy is currently returning to the screen
+            leaveTimer: 0,        // Timer for when Chappy should leave
+            originalX: 0,         // Original X position before leaving
+            originalY: 0,          // Original Y position before leaving
+            bearCollision: false  // New flag to indicate if returning from bear collision
         };
         
         this.skip = {
@@ -301,55 +316,78 @@ class Game {
                 this.spawnRandomNPC();
             }
         }, 10000); // Wait 10 seconds after game start
+        
+        // Set timer for Chappy to leave and become "Not Chappy"
+        const leaveTime = 10000 + Math.random() * 10000; // 10-20 seconds
+        this.chappy.leaveTimer = leaveTime / 1000; // Convert to seconds for the game timer
     }
     
     reset() {
         this.level = 1;
         this.score = 0;
         this.tokens = 0;
-        this.tokenCooldown = false; // Initialize token cooldown
+        this.tokenCooldown = false;
         this.mood = 4;
-        this.startingMood = 4; // Track the starting mood value for each level
-        this.peopleCount = 10;
+        this.startingMood = 4;
+        this.peopleCount = 10; // Reset people count
         this.peopleLeft = this.peopleCount;
-        this.showLevelSplash = false;
-        this.showGameOverScreen = false;
-        this.levelSplashTimer = 0;
-        this.collectedScores = []; // Reset collected scores
-        this.csatScore = 0; // Reset CSAT score
-        this.moodAdjustment = 0; // Initialize mood adjustment
-        this.moodMessage = ""; // Initialize mood message
         
-        // Clear game over related properties
-        this.gameOverMessage = null;
-        this.canRestart = false;
-        if (this.restartCooldownTimer) {
-            clearTimeout(this.restartCooldownTimer);
-            this.restartCooldownTimer = null;
-        }
+        // Reset global message
+        this.globalMessage = {
+            text: "",
+            visible: false,
+            timer: 0,
+            color: '#e74c3c' // Red color by default
+        };
         
-        this.rj.x = this.canvas.width / 2;
-        this.rj.y = this.canvas.height / 2;
-        this.rj.interacting = false;
-        this.rj.targetPerson = null;
-        this.rj.speedBoost = false;
-        this.rj.speedBoostDuration = 0;
+        this.rj = {
+            x: this.canvas.width / 2,
+            y: this.canvas.height / 2,
+            width: 30,
+            height: 30,
+            speed: 200,
+            isMovingUp: false,
+            isMovingDown: false,
+            isMovingLeft: false,
+            isMovingRight: false,
+            interacting: false,
+            targetPerson: null,
+            interactionRange: 50,
+            speedBoost: false,
+            speedBoostDuration: 0,
+            messageTimer: 0,
+            messageVisible: false,
+            messageText: null
+        };
         
-        this.chappy.x = this.canvas.width / 4;
-        this.chappy.y = this.canvas.height / 4;
-        this.chappy.frozen = false;
-        this.chappy.frozenTime = 0;
-        this.chappy.targetPerson = null;
-        this.chappy.collecting = false;
-        this.chappy.collectingTime = 0;
-        this.chappy.collectingPerson = null;
-        this.chappy.happy = false;
-        this.chappy.happyTime = 0;
-        this.chappy.messageVisible = false;
-        this.chappy.messageTimer = 0;
-        this.chappy.messageText = null;
-        this.chappy.handlingBear = false;
-        this.chappy.handlingBearTime = 0;
+        this.chappy = {
+            x: this.canvas.width / 2,
+            y: this.canvas.height / 3,
+            width: 30,
+            height: 30,
+            speed: 100,
+            targetPerson: null,
+            collecting: false,
+            collectingPerson: null,
+            collectingTime: 0,
+            frozen: false,
+            frozenTime: 0,
+            happy: false,
+            happyTime: 0,
+            messageVisible: false,
+            messageTimer: 0,
+            messageText: null,
+            lastCollisionTime: 0,
+            handlingBear: false,
+            handlingBearTime: 0,
+            disguised: false,
+            leaving: false,
+            returning: false,
+            leaveTimer: 0,
+            originalX: 0,
+            originalY: 0,
+            bearCollision: false
+        };
         
         this.skip.x = this.canvas.width / 2;
         this.skip.y = this.canvas.height - 50; // Move Skip up a bit from the bottom
@@ -586,6 +624,78 @@ class Game {
     }
     
     updateChappy(deltaTime) {
+        // Handle the timer for Chappy leaving
+        if (this.chappy.leaveTimer > 0) {
+            this.chappy.leaveTimer -= deltaTime;
+            if (this.chappy.leaveTimer <= 0) {
+                // If returning after bear collision
+                if (this.chappy.bearCollision) {
+                    // Return to original position
+                    this.chappy.x = this.chappy.originalX;
+                    this.chappy.y = this.chappy.originalY;
+                    
+                    // Display global message instead of speech bubble
+                    this.showGlobalMessage("Haha, Nice try RJ!", 3);
+                    
+                    // Reset bear collision flag
+                    this.chappy.bearCollision = false;
+                    this.chappy.returning = false;
+                } else {
+                    // Original leave behavior - only when not bear collision
+                    this.chappy.leaving = true;
+                    
+                    // Display global message instead of speech bubble
+                    this.showGlobalMessage("Peace, I'm out!", 3);
+                    
+                    this.chappy.originalX = this.chappy.x;
+                    this.chappy.originalY = this.chappy.y;
+                }
+            }
+        }
+        
+        // Handle Chappy returning from bear collision
+        if (this.chappy.bearCollision && this.chappy.returning) {
+            // Just wait for the timer to expire - position is set in the timer code
+            return; // Skip other updates while returning from bear
+        }
+        
+        // Handle Chappy leaving
+        if (this.chappy.leaving) {
+            // Move Chappy off-screen to the right
+            this.chappy.x += 200 * deltaTime; // Move faster than normal speed
+            
+            // Once off-screen, switch to returning
+            if (this.chappy.x > this.canvas.width + 50) {
+                this.chappy.leaving = false;
+                this.chappy.returning = true;
+                this.chappy.disguised = true; // Change to "Not Chappy"
+                this.chappy.x = -50; // Start returning from the left side
+            }
+            
+            return; // Skip other updates while leaving
+        }
+        
+        // Handle normal Chappy returning (as Not Chappy)
+        if (this.chappy.returning && !this.chappy.bearCollision) {
+            // Move Chappy back to original position
+            const dx = this.chappy.originalX - this.chappy.x;
+            const dy = this.chappy.originalY - this.chappy.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 5) {
+                // Move towards original position
+                this.chappy.x += (dx / distance) * 200 * deltaTime;
+                this.chappy.y += (dy / distance) * 200 * deltaTime;
+            } else {
+                // Reached original position
+                this.chappy.x = this.chappy.originalX;
+                this.chappy.y = this.chappy.originalY;
+                this.chappy.returning = false;
+            }
+            
+            return; // Skip other updates while returning
+        }
+        
         if (this.chappy.frozen) {
             this.chappy.frozenTime -= deltaTime;
             if (this.chappy.frozenTime <= 0) {
@@ -2368,6 +2478,17 @@ class Game {
         if (this.bear.active) {
             this.drawBearEmoji();
         }
+        
+        // Draw global message if visible
+        if (this.globalMessage.visible) {
+            this.ctx.save();
+            this.ctx.fillStyle = this.globalMessage.color;
+            this.ctx.font = 'bold 32px Arial'; // Increased from 24px to 32px
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'top';
+            this.ctx.fillText(this.globalMessage.text, this.canvas.width / 2, 50); // Moved down from 20 to 50
+            this.ctx.restore();
+        }
     }
     
     // Helper method to draw Skip as a cute square emoji
@@ -2746,13 +2867,15 @@ class Game {
         // Draw "Chappy" text with better visibility
         // Add a dark background for the name
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        this.ctx.fillRect(x - 30, y + radius + 5, 60, 18);
+        const chappyName = this.chappy.disguised ? 'Not Chappy' : 'Chappy';
+        const nameWidth = chappyName.length * 8; // Approximate width based on text length
+        this.ctx.fillRect(x - nameWidth/2, y + radius + 5, nameWidth, 18);
         
         // Draw the name text
         this.ctx.fillStyle = '#fff';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Chappy', x, y + radius + 18);
+        this.ctx.fillText(chappyName, x, y + radius + 18);
         
         // If Chappy is collecting, show a progress indicator
         if (this.chappy.collecting) {
@@ -4346,6 +4469,15 @@ class Game {
     
     // Helper method to update timers and effects that should continue regardless of Cole's effect
     updateTimersAndEffects(deltaTime) {
+        // Update global message timer
+        if (this.globalMessage.visible) {
+            this.globalMessage.timer -= deltaTime;
+            if (this.globalMessage.timer <= 0) {
+                this.globalMessage.visible = false;
+                this.globalMessage.text = "";
+            }
+        }
+        
         // Update positive feedback buff if active
         if (this.positiveFeedbackBuff) {
             this.positiveFeedbackBuffTime -= deltaTime;
@@ -4542,24 +4674,26 @@ class Game {
             
             // Check for collision with Chappy - NEW FEATURE
             if (this.checkCollision(this.bear, this.chappy)) {
-                // Chappy taunts RJ
-                this.chappy.messageVisible = true;
-                this.chappy.messageTimer = 3;
-                this.chappy.messageText = "Nice try RJ!";
+                // Store Chappy's original position before disappearing
+                this.chappy.originalX = this.chappy.x;
+                this.chappy.originalY = this.chappy.y;
                 
-                // Set the bear handling state on Chappy
-                this.chappy.handlingBear = true;
-                this.chappy.handlingBearTime = 1.5; // 1.5 seconds of animation
+                // Make Chappy and bear disappear
+                this.chappy.x = -100;
+                this.chappy.y = -100;
+                this.bear.x = -100;
+                this.bear.y = -100;
                 
-                // Reduce Chappy's mood by 0.5
-                this.mood -= 0.5;
-                if (this.mood < 0) this.mood = 0;
+                // Reset any existing state flags to avoid conflicts
+                this.chappy.messageVisible = false; 
+                this.chappy.messageTimer = 0;
+                this.chappy.leaving = false;
+                this.chappy.handlingBear = false;
                 
-                // Show a visual indication that Chappy's mood decreased
-                this.moodMessage = "-0.5";
-                
-                // Update the UI
-                this.updateUI();
+                // Set up a timer for Chappy to reappear
+                this.chappy.bearCollision = true; // Set the bear collision flag
+                this.chappy.returning = true;
+                this.chappy.leaveTimer = 3; // 3 seconds before reappearing
                 
                 // Remove the bear
                 this.bear.active = false;
@@ -4567,7 +4701,7 @@ class Game {
                 // Set the next spawn time
                 this.bear.spawnTimer = this.bear.minSpawnTime + Math.random() * (this.bear.maxSpawnTime - this.bear.minSpawnTime);
                 
-                console.log("Bear collided with Chappy! Mood decreased by 0.5");
+                console.log("Bear collided with Chappy! Both disappeared.");
                 return;
             }
             
@@ -4701,6 +4835,14 @@ class Game {
         
         // Restore context settings
         this.ctx.restore();
+    }
+    
+    // Helper method to show a global message
+    showGlobalMessage(text, duration = 3, color = '#e74c3c') {
+        this.globalMessage.text = text;
+        this.globalMessage.timer = duration;
+        this.globalMessage.visible = true;
+        this.globalMessage.color = color;
     }
 }
 
