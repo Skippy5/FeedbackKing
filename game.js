@@ -71,7 +71,9 @@ class Game {
             messageVisible: false,
             messageTimer: 0,
             messageText: null,
-            lastCollisionTime: 0 // Track last collision time to prevent rapid mood loss
+            lastCollisionTime: 0, // Track last collision time to prevent rapid mood loss
+            handlingBear: false,  // New property to track when Chappy is handling a bear
+            handlingBearTime: 0   // Timer for bear handling animation
         };
         
         this.skip = {
@@ -209,8 +211,8 @@ class Game {
             active: false,
             spawnTimer: 0,
             activeTimer: 0,
-            minSpawnTime: 20, // Minimum seconds between bear spawns
-            maxSpawnTime: 40, // Maximum seconds between bear spawns
+            minSpawnTime: 45, // Increased from 20 to 45 seconds
+            maxSpawnTime: 90, // Increased from 40 to 90 seconds
             activeDuration: 15 // How long the bear stays on screen
         };
     }
@@ -346,6 +348,8 @@ class Game {
         this.chappy.messageVisible = false;
         this.chappy.messageTimer = 0;
         this.chappy.messageText = null;
+        this.chappy.handlingBear = false;
+        this.chappy.handlingBearTime = 0;
         
         this.skip.x = this.canvas.width / 2;
         this.skip.y = this.canvas.height - 50; // Move Skip up a bit from the bottom
@@ -1776,7 +1780,7 @@ class Game {
         this.ctx.fillStyle = '#2980b9';
         this.ctx.font = 'bold 24px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('Leaderboard', lbX + lbWidth/2, lbY + 30);
+        this.ctx.fillText('Weekly Leaderboard', lbX + lbWidth/2, lbY + 30);
         
         // Draw leaderboard entries or "No Scores Yet" message
         this.ctx.fillStyle = '#333';
@@ -1784,7 +1788,7 @@ class Game {
         
         if (this.leaderboard.length === 0) {
             // No scores yet
-            this.ctx.fillText('No scores yet. Be the first!', lbX + lbWidth/2, lbY + 90);
+            this.ctx.fillText('No scores for this week yet. Be the first!', lbX + lbWidth/2, lbY + 90);
         } else {
             // Draw column headers
             this.ctx.font = 'bold 16px Arial';
@@ -2595,6 +2599,8 @@ class Game {
         let faceColor;
         if (this.chappy.frozen) {
             faceColor = this.chappy.happy ? '#f39c12' : '#95a5a6'; // Orange when happy, gray when just frozen
+        } else if (this.chappy.handlingBear) {
+            faceColor = '#c0392b'; // Darker red when handling a bear
         } else {
             faceColor = '#e74c3c'; // Red normally
         }
@@ -2607,7 +2613,6 @@ class Game {
         
         // Draw eyes
         this.ctx.fillStyle = '#fff';
-        
         
         // Left eye
         this.ctx.beginPath();
@@ -4412,6 +4417,14 @@ class Game {
                 this.chappy.messageText = null; // Reset custom message text
             }
         }
+        
+        // Update Chappy's bear handling timer
+        if (this.chappy.handlingBear) {
+            this.chappy.handlingBearTime -= deltaTime;
+            if (this.chappy.handlingBearTime <= 0) {
+                this.chappy.handlingBear = false;
+            }
+        }
     }
     
     // Helper method to draw attack animation
@@ -4421,12 +4434,20 @@ class Game {
     
     // === Supabase Leaderboard Methods ===
     
-    // Fetch top 5 scores from Supabase
+    // Fetch top 5 scores from Supabase for the current week
     async fetchLeaderboard() {
         try {
+            // Calculate the start of the current week (Sunday)
+            const now = new Date();
+            const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, etc.
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - dayOfWeek);
+            startOfWeek.setHours(0, 0, 0, 0);
+            
             const { data, error } = await this.supabase
                 .from('leaderboard')
                 .select('*')
+                .gte('date', startOfWeek.toISOString()) // Only fetch scores from current week
                 .order('score', { ascending: false })
                 .limit(5);
                 
@@ -4516,6 +4537,37 @@ class Game {
             if (this.checkCollision(this.bear, this.rj)) {
                 // Game over if bear catches RJ
                 this.gameOver("Oh no! A bear got you! 🐻");
+                return;
+            }
+            
+            // Check for collision with Chappy - NEW FEATURE
+            if (this.checkCollision(this.bear, this.chappy)) {
+                // Chappy taunts RJ
+                this.chappy.messageVisible = true;
+                this.chappy.messageTimer = 3;
+                this.chappy.messageText = "Nice try RJ!";
+                
+                // Set the bear handling state on Chappy
+                this.chappy.handlingBear = true;
+                this.chappy.handlingBearTime = 1.5; // 1.5 seconds of animation
+                
+                // Reduce Chappy's mood by 0.5
+                this.mood -= 0.5;
+                if (this.mood < 0) this.mood = 0;
+                
+                // Show a visual indication that Chappy's mood decreased
+                this.moodMessage = "-0.5";
+                
+                // Update the UI
+                this.updateUI();
+                
+                // Remove the bear
+                this.bear.active = false;
+                
+                // Set the next spawn time
+                this.bear.spawnTimer = this.bear.minSpawnTime + Math.random() * (this.bear.maxSpawnTime - this.bear.minSpawnTime);
+                
+                console.log("Bear collided with Chappy! Mood decreased by 0.5");
                 return;
             }
             
