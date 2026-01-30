@@ -226,8 +226,8 @@ class Game {
             active: false,
             spawnTimer: 0,
             activeTimer: 0,
-            minSpawnTime: 45, // Increased from 20 to 45 seconds
-            maxSpawnTime: 90, // Increased from 40 to 90 seconds
+            minSpawnTime: 60, // Slowed down: was 45, now 60 seconds
+            maxSpawnTime: 120, // Slowed down: was 90, now 120 seconds
             activeDuration: 15 // How long the bear stays on screen
         };
     }
@@ -1347,7 +1347,7 @@ class Game {
                 }, i * 200); // Send each envelope with a small delay
             }
             
-        }, 8000 / Math.sqrt(this.level)); // Interval for subsequent bursts
+        }, Math.max(3000, 10000 / Math.sqrt(this.level))); // Slower start (10s at level 1), speeds up to min 3s at higher levels
         
         // Send the first batch almost immediately
         setTimeout(() => {
@@ -1691,18 +1691,18 @@ class Game {
         } else {
             // Use a random funny default message instead of the boring one
             const defaultMessages = [
-                "Chappy's mood meter is maxed out... with glee at your demise!",
-                "Game over! Chappy is throwing a 'Your Career is Over' party!",
-                "Mood flatlined! Chappy's writing your obituary!",
-                "Your mood has left the chat... and Chappy is the admin now!",
-                "Bye Bye RJ! The Chappy isn't Happy!",
-                "Chappy wins, mood plummets, job prospects too!",
-                "The mood-o-meter hit rock bottom! Chappy's dancing on it!",
-                "Chappy 1, Your Mood 0. Game, set, unemployment!",
-                "Your feedback game is weak, but Chappy's schadenfreude is strong!",
+                "Justin's mood meter is maxed out... with glee at your demise!",
+                "Game over! Hendo is throwing a 'Your Career is Over' party!",
+                "Mood flatlined! Justin's writing your obituary!",
+                "Your mood has left the chat... and Hendo is the admin now!",
+                "Bye Bye RJ! Justin isn't impressed!",
+                "Hendo wins, mood plummets, job prospects too!",
+                "The mood-o-meter hit rock bottom! Justin's dancing on it!",
+                "Justin 1, Your Mood 0. Game, set, unemployment!",
+                "Your feedback game is weak, but Hendo's schadenfreude is strong!",
                 "Mood critical failure! Have you tried turning RJ off and on again?",
-                "Chappy's mood improvement plan: Your termination letter!",
-                "Your mood just got Chappy-slapped into oblivion!"
+                "Justin's mood improvement plan: Your termination letter!",
+                "Your mood just got Hendo-slapped into oblivion!"
             ];
             this.gameOverMessage = defaultMessages[Math.floor(Math.random() * defaultMessages.length)];
         }
@@ -1800,14 +1800,14 @@ class Game {
         // Store the snarky message in a property if not already set
         if (!this.gameOverMessage) {
             const snarkyMessages = [
-                "Bye Bye RJ! The Chappy isn't Happy!",
-                "Chappy wins, mood plummets, job prospects too!",
-                "The mood-o-meter hit rock bottom! Chappy's dancing on it!",
-                "Chappy 1, Your Mood 0. Game, set, unemployment!",
-                "Your feedback game is weak, but Chappy's schadenfreude is strong!",
+                "Bye Bye RJ! Justin isn't impressed!",
+                "Hendo wins, mood plummets, job prospects too!",
+                "The mood-o-meter hit rock bottom! Justin's dancing on it!",
+                "Justin 1, Your Mood 0. Game, set, unemployment!",
+                "Your feedback game is weak, but Hendo's schadenfreude is strong!",
                 "Mood critical failure! Have you tried turning RJ off and on again?",
-                "Chappy's mood improvement plan: Your termination letter!",
-                "Your mood just got Chappy-slapped into oblivion!"
+                "Justin's mood improvement plan: Your termination letter!",
+                "Your mood just got Hendo-slapped into oblivion!"
             ];
             this.gameOverMessage = snarkyMessages[Math.floor(Math.random() * snarkyMessages.length)];
         }
@@ -2123,7 +2123,7 @@ class Game {
         this.moodAdjustment = moodAdjustment;
         this.moodMessage = moodMessage;
         
-        this.peopleCount = 10 + (this.level - 1) * 2; // Increase people count with each level
+        this.peopleCount = 6 + (this.level - 1) * 2; // Start with 6 people on level 1, increase by 2 each level (easier start)
         this.peopleLeft = this.peopleCount;
         
         // Clear the board of all existing people
@@ -2864,18 +2864,22 @@ class Game {
         
         this.ctx.stroke();
         
-        // Draw "Chappy" text with better visibility
+        // Draw manager name text with better visibility
         // Add a dark background for the name
         this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        const chappyName = this.chappy.disguised ? 'Not Chappy' : 'Chappy';
-        const nameWidth = chappyName.length * 8; // Approximate width based on text length
+        // Randomly pick between Justin and Hendo, or use "The Boss" when disguised
+        if (!this.chappy.managerName) {
+            this.chappy.managerName = Math.random() < 0.5 ? 'Justin' : 'Hendo';
+        }
+        const managerName = this.chappy.disguised ? 'The Boss' : this.chappy.managerName;
+        const nameWidth = managerName.length * 8; // Approximate width based on text length
         this.ctx.fillRect(x - nameWidth/2, y + radius + 5, nameWidth, 18);
         
         // Draw the name text
         this.ctx.fillStyle = '#fff';
         this.ctx.font = 'bold 14px Arial';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(chappyName, x, y + radius + 18);
+        this.ctx.fillText(managerName, x, y + radius + 18);
         
         // If Chappy is collecting, show a progress indicator
         if (this.chappy.collecting) {
@@ -4648,8 +4652,8 @@ class Game {
         if (!this.bear.active) {
             this.bear.spawnTimer -= deltaTime;
             
-            // Time to spawn the bear
-            if (this.bear.spawnTimer <= 0) {
+            // Time to spawn the bear - only after level 3
+            if (this.bear.spawnTimer <= 0 && this.level >= 3) {
                 this.spawnBear();
             }
         } else {
